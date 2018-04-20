@@ -4,6 +4,7 @@ buildGoPackage {
   version = "0.1.0";
 
   src = ./.;
-
   goPackagePath = "github.com/jahkeup/repost";
+
+  doCheck = true;
 }
