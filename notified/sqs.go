@@ -59,7 +59,7 @@ func (s *sqsNotification) poll(ctx context.Context) error {
 	recv, err := s.sqs.ReceiveMessage(&sqs.ReceiveMessageInput{
 		QueueUrl:              aws.String(s.queue),
 		MaxNumberOfMessages:   aws.Int64(10), // max
-		WaitTimeSeconds:       aws.Int64(sqsWaitDuration.Seconds()),
+		WaitTimeSeconds:       aws.Int64(int64(sqsWaitDuration.Seconds())),
 		MessageAttributeNames: aws.StringSlice([]string{sqs.QueueAttributeNameAll}),
 	})
 	if err != nil {
@@ -67,7 +67,7 @@ func (s *sqsNotification) poll(ctx context.Context) error {
 		return err
 	}
 
-	err := s.deliver(recv.Messages)
+	err = s.deliver(recv.Messages)
 	s.inflight.Release(1)
 	return err
 }

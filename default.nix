@@ -6,5 +6,4 @@ buildGoPackage {
   src = ./.;
 
   goPackagePath = "github.com/jahkeup/repost";
-  subPackages = [ "cmd/repostd" ];
 }
