@@ -1,0 +1,26 @@
+* Repost
+  
+  Repost resubmits or otherwise dispatches emails delivered to
+  SES. This can be used for redelivery to postfix for further handling
+  or to pipe into another mail handler for application specific
+  handling. Either way, your mail server is not directly exposed to
+  the internet (whether by choice or not permitted to) and let's
+  Amazon deal with the inital pass at spam filtering and DoS
+  blocking. Nice!
+
+* Building
+
+  #+BEGIN_SRC shell :no-expand
+    # To build only the main binaries:
+    nix-build -A repost release.nix
+
+    # Or build the entire release including the docker container and the
+    # binaries:
+    nix-build release.nix
+  #+END_SRC
+
+* Testing
+
+  Testing is also performed by the build above. If you can't build,
+  either the code is bad or the tests aren't passing. Watch the output
+  of the build.
