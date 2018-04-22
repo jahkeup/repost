@@ -5,13 +5,12 @@ import (
 )
 
 type Mock struct {
-	OnHandleDelivery func(noti.DeliveryNotification)
+	OnHandleDelivery func(noti.DeliveryNotification) error
 }
 
 func (n *Mock) HandleDelivery(dn noti.DeliveryNotification) error {
-
 	if n.OnHandleDelivery != nil {
-		n.OnHandleDelivery(dn)
+		return n.OnHandleDelivery(dn)
 	}
 
 	return nil

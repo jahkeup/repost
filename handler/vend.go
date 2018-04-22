@@ -10,10 +10,24 @@ type Vender interface {
 	Vend(notification.DeliveryNotification) delivery.Deliverer
 }
 
-type ReusableVender struct {
-	d delivery.Deliverer
+// FuncVender vends a deliverer using a function regardless of the
+// notification data (which should be handled by a type specific to
+// handling this using the Vend interface).
+type FuncVender struct {
+	newDeliverer func() delivery.Deliverer
 }
 
-func (r *ReusableVender) Vend(_ notification.DeliveryNotification) delivery.Deliverer {
-	return r.d
+// NewFuncVender returns a Vender that returns a Deliverer from a
+// called function.
+func NewFuncVender(fn func() delivery.Deliverer) *FuncVender {
+	return &FuncVender{
+		newDeliverer: fn,
+	}
+}
+
+func (r *FuncVender) Vend(_ notification.DeliveryNotification) delivery.Deliverer {
+	if r.newDeliverer != nil {
+		return r.newDeliverer()
+	}
+	panic("deliverer func must be provided")
 }

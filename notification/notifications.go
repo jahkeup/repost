@@ -2,14 +2,12 @@ package notification
 
 import (
 	"time"
-
-	"github.com/aws/aws-sdk-go/service/ses"
 )
 
 // https://docs.aws.amazon.com/ses/latest/DeveloperGuide/receiving-email-notifications-contents.html
 type DeliveryNotification struct {
 	NotificationType string
-	Receipt          ses.ReceiptAction
+	Receipt          receiptObject
 	Mail             mailObject
 }
 
@@ -20,8 +18,20 @@ type mailObject struct {
 	MessageId        string
 	Timestamp        time.Time
 	Headers          []mailHeader
-	CommonHeaders    []mailHeader
+	CommonHeaders    map[string]interface{}
 	HeadersTruncated bool
+}
+
+type receiptObject struct {
+	Action actionObject
+}
+
+type actionObject struct {
+	Type            string
+	BucketName      string
+	ObjectKey       string
+	ObjectKeyPrefix string
+	KmsKeyArn       string
 }
 
 type mailHeader struct {
