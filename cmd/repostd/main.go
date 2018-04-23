@@ -1,9 +1,19 @@
 package main
 
 import (
-	"log"
+	"github.com/Sirupsen/logrus"
+	"github.com/jahkeup/repost/config"
 )
 
 func main() {
-	log.Println("Reposting mail from SES Delivery notifications, watching queue")
+	conf, err := ReadConfig("./repost.toml")
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	run(conf)
+}
+
+func run(config *config.Config) error {
+	//	ctx, cancel := Context()
+	return nil
 }
