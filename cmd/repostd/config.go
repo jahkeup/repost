@@ -21,3 +21,30 @@ func ReadConfig(path string) (*config.Config, error) {
 	toml.Unmarshal(data, &conf)
 	return &conf, nil
 }
+
+func generateTOML() []byte {
+	data, err := toml.Marshal(exampleConfig())
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
+func exampleConfig() config.Config {
+	conf := config.Config{
+		General: config.General{
+			LogLevel: "INFO",
+			Region:   "us-west-2",
+			Profile:  "repost",
+		},
+		Notification: config.Notification{
+			QueueURL: "https://queue-url.com",
+		},
+		Delivery: config.Delivery{
+			Pipe: config.PipeDelivery{
+				Command: "tee ./delivery/{{.MessageId}}",
+			},
+		},
+	}
+	return conf
+}
