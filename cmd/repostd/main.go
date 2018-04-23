@@ -28,7 +28,10 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	run(conf)
+	err = run(conf)
+	if err != nil {
+		logrus.Fatal(err)
+	}
 }
 
 func run(config *config.Config) error {

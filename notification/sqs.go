@@ -37,18 +37,19 @@ func (s *sqsNotification) SetDeliveryHandler(h DeliveryHandler) {
 }
 
 func (s *sqsNotification) Poll(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			pollctx, _ := context.WithTimeout(ctx, sqsMaxPollDuration)
-			err := s.poll(pollctx)
-			if err != nil {
-				s.log.Errorf("SQS Poll returned an error: %s", err)
-			}
-		}
-	}
+	return s.poll(ctx)
+	// for {
+	// 	select {
+	// 	case <-ctx.Done():
+	// 		return nil
+	// 	default:
+	// 		pollctx, _ := context.WithTimeout(ctx, sqsMaxPollDuration)
+	// 		err := s.poll(pollctx)
+	// 		if err != nil {
+	// 			s.log.Errorf("SQS Poll returned an error: %s", err)
+	// 		}
+	// 	}
+	// }
 }
 
 func (s *sqsNotification) poll(ctx context.Context) error {
@@ -66,9 +67,11 @@ func (s *sqsNotification) poll(ctx context.Context) error {
 		s.log.Info("Resuming handling of messages")
 	}
 
+	maxMessages := int64(10)
+	s.log.Debugf("Polling SQS for new %d message(s)", maxMessages)
 	recv, err := s.sqs.ReceiveMessage(&sqs.ReceiveMessageInput{
 		QueueUrl:              aws.String(s.queue),
-		MaxNumberOfMessages:   aws.Int64(10), // max
+		MaxNumberOfMessages:   aws.Int64(maxMessages), // max
 		WaitTimeSeconds:       aws.Int64(int64(sqsWaitDuration.Seconds())),
 		MessageAttributeNames: aws.StringSlice([]string{sqs.QueueAttributeNameAll}),
 	})
@@ -90,9 +93,13 @@ func (s *sqsNotification) deliver(msgs []*sqs.Message) error {
 func NewSQS(ctx context.Context, client *sqs.SQS, queueUrl string) *sqsNotification {
 	sema := semaphore.NewWeighted(sqsMaxInFlight)
 	notif := sqsNotification{
+		sqs:      client,
 		queue:    queueUrl,
 		inflight: sema,
-		log:      logrus.WithField("poller", "sqs"),
+		log: logrus.WithFields(logrus.Fields{
+			"context": "poller",
+			"poller":  "sqs",
+		}),
 	}
 
 	return &notif

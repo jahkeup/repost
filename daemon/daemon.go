@@ -46,6 +46,11 @@ func New(ctx context.Context, config *config.Config) (*Daemon, error) {
 
 	d := &Daemon{poller: poller, log: log}
 
+	err = d.logCallerIdentity(session)
+	if err != nil {
+		return nil, err
+	}
+
 	return d, nil
 }
 

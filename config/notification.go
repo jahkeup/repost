@@ -5,8 +5,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
-
 	noti "github.com/jahkeup/repost/notification"
+	"github.com/pkg/errors"
 )
 
 // Notification configuration
@@ -19,5 +19,9 @@ type Notification struct {
 // daemon.
 func (n *Notification) Poller(ctx context.Context, sess *session.Session) (noti.Poller, error) {
 	sqs := sqs.New(sess)
+	if sqs == nil {
+		return nil, errors.New("error creating sqs client from config")
+	}
+
 	return noti.NewSQS(ctx, sqs, n.QueueURL), nil
 }
