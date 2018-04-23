@@ -5,7 +5,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/jahkeup/repost/delivery"
 	"github.com/jahkeup/repost/handler"
 	noti "github.com/jahkeup/repost/notification"
 )
@@ -24,5 +23,11 @@ func (d *Delivery) vender() (handler.Vender, error) {
 // Handler is the configured handler for receiving messages.
 func (d *Delivery) Handler(ctx context.Context, sess *session.Session) (noti.DeliveryHandler, error) {
 	s3 := s3.New(sess)
-	return handler.NewS3(s3, d.vender())
+	configuredVender, err := d.vender()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return handler.NewS3(s3, configuredVender), nil
 }

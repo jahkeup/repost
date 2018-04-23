@@ -25,7 +25,7 @@ var (
 
 type sqsNotification struct {
 	queue    string
-	sqs      sqs.SQS
+	sqs      *sqs.SQS
 	inflight *semaphore.Weighted
 	log      logrus.FieldLogger
 
@@ -87,7 +87,7 @@ func (s *sqsNotification) deliver(msgs []*sqs.Message) error {
 	return nil
 }
 
-func NewSQS(ctx context.Context, client sqs.SQS, queueUrl string) *sqsNotification {
+func NewSQS(ctx context.Context, client *sqs.SQS, queueUrl string) *sqsNotification {
 	sema := semaphore.NewWeighted(sqsMaxInFlight)
 	notif := sqsNotification{
 		queue:    queueUrl,
