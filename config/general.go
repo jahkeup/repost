@@ -1,6 +1,8 @@
 package config
 
 import (
+	"sync"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -8,6 +10,8 @@ import (
 
 // General configuration options for program run.
 type General struct {
+	apply sync.Once
+
 	LogLevel string
 
 	// AWS Region
@@ -17,16 +21,22 @@ type General struct {
 }
 
 func (g *General) Apply() {
-	lvl, err := logrus.ParseLevel(g.LogLevel)
-	if err != nil {
-		logrus.SetLevel(logrus.InfoLevel)
-		logrus.Warnf("Provided loglevel %q was invalid, falling back to INFO", g.LogLevel)
-	} else {
-		logrus.SetLevel(lvl)
-	}
+	g.apply.Do(func() {
+		lvl, err := logrus.ParseLevel(g.LogLevel)
+		if err != nil {
+			logrus.SetLevel(logrus.InfoLevel)
+			logrus.Warnf("Provided loglevel %q was invalid, falling back to INFO", g.LogLevel)
+		} else {
+			logrus.SetLevel(lvl)
+		}
+	})
 }
 
-func (g *General) Session() (*session.Session, error) {
+func (c *Config) Session() (*session.Session, error) {
+	return c.General.session()
+}
+
+func (g *General) session() (*session.Session, error) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
 			Region: aws.String(g.Region),

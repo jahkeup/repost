@@ -11,3 +11,8 @@ type DeliveryHandler interface {
 type Poller interface {
 	Poll(context.Context) error
 }
+
+type ConfigurablePoller interface {
+	Poller
+	SetDeliveryHandler(h DeliveryHandler)
+}
