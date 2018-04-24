@@ -6,6 +6,10 @@ import (
 	"os/signal"
 )
 
+// subscribe and unsubscribe are vars for testing.
+var subscribe = signal.Notify
+var unsubcribe = signal.Stop
+
 // WithCancelSignal handles an os.Signal to cancel a context on an os
 // signal like SIGINT.
 func WithCancelSignal(parent context.Context, cancelSignals ...os.Signal) (context.Context, context.CancelFunc) {
@@ -13,7 +17,7 @@ func WithCancelSignal(parent context.Context, cancelSignals ...os.Signal) (conte
 	c := make(chan os.Signal, 1)
 
 	stopListening := func() {
-		signal.Stop(c)
+		unsubcribe(c)
 	}
 
 	sigctxCancel := func() {
@@ -26,10 +30,13 @@ func WithCancelSignal(parent context.Context, cancelSignals ...os.Signal) (conte
 		select {
 		case <-actualCtx.Done():
 			stopListening()
+		case <-c:
+			sigctxCancel()
+			return
 		}
 	}()
 
-	signal.Notify(c, os.Interrupt)
+	subscribe(c, cancelSignals...)
 
 	return actualCtx, sigctxCancel
 }
