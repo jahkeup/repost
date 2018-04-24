@@ -10,10 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	noError error = nil
+)
+
 func TestDaemonHappyPath(t *testing.T) {
 	t.Parallel()
-
 	testDuration := 1 * time.Second
+
 	testCtx, cancel := context.WithTimeout(context.Background(), testDuration)
 	defer cancel()
 	ctrl := gomock.NewController(t)
@@ -22,7 +26,7 @@ func TestDaemonHappyPath(t *testing.T) {
 	// Poller should be polled by the daemon at least once while
 	// running and should exit without error on its own.
 	poller := NewMockPoller(ctrl)
-	poller.EXPECT().Poll(gomock.Any()).MinTimes(1)
+	poller.EXPECT().Poll(gomock.Any()).MinTimes(1).Return(noError)
 
 	daemon := Daemon{
 		poller: poller,

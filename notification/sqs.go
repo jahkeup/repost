@@ -23,9 +23,15 @@ var (
 	ErrNoHandler = errors.New("No handler configured for deliveries")
 )
 
+// sqsReceiver describes the methods called to receive messages from a
+// SQS queue.
+type SQSReceiver interface {
+	ReceiveMessage(*sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
+}
+
 type sqsNotification struct {
 	queue    string
-	sqs      *sqs.SQS
+	sqs      SQSReceiver
 	inflight *semaphore.Weighted
 	log      logrus.FieldLogger
 
@@ -80,20 +86,44 @@ func (s *sqsNotification) poll(ctx context.Context) error {
 		return err
 	}
 
+	if recv == nil {
+		s.inflight.Release(1)
+		return errors.New("sqs response was empty")
+	}
+
 	err = s.deliver(recv.Messages)
 	s.inflight.Release(1)
 	return err
 }
 
 func (s *sqsNotification) deliver(msgs []*sqs.Message) error {
-	s.log.Debugf("Messages: %#v", msgs)
+	for _, msg := range msgs {
+		dn, err := sqsMessageToDeliveryNotification(msg)
+		if err != nil {
+			s.log.Errorf("error extracting delivery notification from sqs message: %s", err)
+			if msg.Body != nil {
+				s.log.Debugf("sqs message: %q", msg.Body)
+			}
+			continue
+		}
+		if dn == nil {
+			errors.New("extracted delivery notification was empty")
+			s.log.Error(err)
+			return err
+		}
+		s.handler.HandleDelivery(*dn)
+	}
 	return nil
 }
 
-func NewSQS(ctx context.Context, client *sqs.SQS, queueUrl string) *sqsNotification {
+func sqsMessageToDeliveryNotification(msg *sqs.Message) (*DeliveryNotification, error) {
+	return nil, nil
+}
+
+func NewSQS(receiver SQSReceiver, queueUrl string) *sqsNotification {
 	sema := semaphore.NewWeighted(sqsMaxInFlight)
 	notif := sqsNotification{
-		sqs:      client,
+		sqs:      receiver,
 		queue:    queueUrl,
 		inflight: sema,
 		log: logrus.WithFields(logrus.Fields{

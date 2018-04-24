@@ -17,11 +17,11 @@ type Notification struct {
 
 // Poller is limited to the context and should be polled by the
 // daemon.
-func (n *Notification) Poller(ctx context.Context, sess *session.Session) (noti.Poller, error) {
+func (n *Notification) Poller(_ context.Context, sess *session.Session) (noti.Poller, error) {
 	sqs := sqs.New(sess)
 	if sqs == nil {
 		return nil, errors.New("error creating sqs client from config")
 	}
 
-	return noti.NewSQS(ctx, sqs, n.QueueURL), nil
+	return noti.NewSQS(sqs, n.QueueURL), nil
 }
