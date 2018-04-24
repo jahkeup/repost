@@ -14,7 +14,7 @@ import (
 const (
 	// this is the time between waits for SQS, backoffs could also be
 	// used to increase this as demand requires to a ceiling.
-	sqsWaitDuration    = 60 * time.Second
+	sqsWaitDuration    = 20 * time.Second
 	sqsMaxPollDuration = sqsWaitDuration * 2
 	sqsMaxInFlight     = 3
 )
@@ -117,6 +117,7 @@ func (s *sqsNotification) deliver(msgs []*sqs.Message) error {
 }
 
 func sqsMessageToDeliveryNotification(msg *sqs.Message) (*DeliveryNotification, error) {
+	logrus.Printf("%s", aws.StringValue(msg.Body))
 	return nil, nil
 }
 

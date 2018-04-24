@@ -53,5 +53,5 @@ func TestDeliveryHandlerInvoke(t *testing.T) {
 	notif := NewSQS(receiver, queueURL)
 	notif.SetDeliveryHandler(handler)
 	err := notif.Poll(testCtx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

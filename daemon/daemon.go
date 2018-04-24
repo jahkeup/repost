@@ -66,7 +66,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 		default:
 			d.log.Debug("polling")
 			err := d.poller.Poll(ctx)
-			d.log.Debug("poller returned %s", err)
+			d.log.Debug("poll complete")
 			if err != nil {
 				d.log.Debug("poller errored, exiting run loop")
 				return err
