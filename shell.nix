@@ -1,6 +1,23 @@
 { pkgs ? import <nixpkgs> {} }:
 with pkgs;
 let
+  gomock = buildGoPackage {
+    name = "mockgen";
+    # src = fetchFromGitHub {
+    #   owner = "golang";
+    #   repo = "mock";
+    #   rev = "8b2eeeb0ca5f56c78bec5efde9c4a21d9201126c";
+    #   sha256 = "1ldrxvmdr6sbhf88jvqzjw33222agaf5bnla9d70v1n4rsvfhyh8";
+    # };
+    src = ./vendor/github.com/golang/mock;
+    goPackagePath = "github.com/golang/mock";
+    subPackages = [ "mockgen" ];
+    postConfigure = ''
+    # Replace the older context references, its provided by the language now.
+    find go/src/$goPackagePath -name \*.go \
+         -exec sed -i 's,golang.org/x/net/context,context,g' {} \;
+    '';
+  };
   dep = buildGoPackage {
     name = "golang-dep";
     src = fetchFromGitHub {
@@ -15,5 +32,5 @@ let
 in
 stdenv.mkDerivation rec {
   name = "repost-shell";
-  buildInputs = [ go dep ];
+  buildInputs = [ go dep gomock ];
 }
