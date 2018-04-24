@@ -8,9 +8,12 @@
   Amazon deal with the inital pass at spam filtering and DoS
   blocking. Nice!
 
+  *Note: this is still being worked on and is missing critical
+  functionality at this time*
+
 * Building
 
-  #+BEGIN_SRC shell :no-expand
+  #+BEGIN_SRC shell :no-expand :eval no
     # To build only the main binaries:
     nix-build -A repost release.nix
 
