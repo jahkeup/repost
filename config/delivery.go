@@ -13,6 +13,12 @@ import (
 type Delivery struct {
 	// Pipe delivery command
 	Pipe PipeDelivery
+	// This causes the message to be retained in S3. This may be useful
+	// for archival purposes or if you're using IA with lifecycles to
+	// age out messages. If retaining an archival copy of messages
+	// stored is desirable, inbound rules for SES should be tuned to
+	// accommodate such goals - this isn't the tool for that.
+	KeepMessages bool
 }
 
 // Vender returns the configured Vender.
@@ -28,6 +34,6 @@ func (d *Delivery) Handler(ctx context.Context, sess *session.Session) (noti.Del
 	if err != nil {
 		return nil, err
 	}
-
-	return handler.NewS3(s3, configuredVender), nil
+	h := handler.NewS3(s3, configuredVender).KeepMessages(d.KeepMessages)
+	return h, nil
 }

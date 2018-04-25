@@ -31,10 +31,11 @@ type SQSReceiver interface {
 }
 
 type sqsNotification struct {
-	queue    string
-	sqs      SQSReceiver
-	inflight *semaphore.Weighted
-	log      logrus.FieldLogger
+	queue        string
+	keepMessages bool
+	sqs          SQSReceiver
+	inflight     *semaphore.Weighted
+	log          logrus.FieldLogger
 
 	handler DeliveryHandler
 }
@@ -43,20 +44,19 @@ func (s *sqsNotification) SetDeliveryHandler(h DeliveryHandler) {
 	s.handler = h
 }
 
+func (s *sqsNotification) KeepMessages(keep bool) *sqsNotification {
+	if keep {
+		logrus.Info("Notifications will NOT be removed after handling")
+	} else {
+		logrus.Warn("Notificaiton will be removed after handling")
+	}
+
+	s.keepMessages = keep
+	return s
+}
+
 func (s *sqsNotification) Poll(ctx context.Context) error {
 	return s.poll(ctx)
-	// for {
-	// 	select {
-	// 	case <-ctx.Done():
-	// 		return nil
-	// 	default:
-	// 		pollctx, _ := context.WithTimeout(ctx, sqsMaxPollDuration)
-	// 		err := s.poll(pollctx)
-	// 		if err != nil {
-	// 			s.log.Errorf("SQS Poll returned an error: %s", err)
-	// 		}
-	// 	}
-	// }
 }
 
 func (s *sqsNotification) poll(ctx context.Context) error {
@@ -125,6 +125,11 @@ func (s *sqsNotification) remove(msg *sqs.Message) error {
 	if msg == nil {
 		return errors.New("nil sqs message provided")
 	}
+	if s.keepMessages {
+		s.log.Info("Retaining SQS message %q", aws.StringValue(msg.MessageId))
+		return nil
+	}
+
 	return nil
 }
 

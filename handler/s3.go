@@ -16,8 +16,9 @@ type s3client interface {
 }
 
 type S3 struct {
-	client s3client
-	vender Vender
+	client       s3client
+	vender       Vender
+	keepMessages bool
 }
 
 func NewS3(client *s3.S3, vender Vender) *S3 {
@@ -25,6 +26,17 @@ func NewS3(client *s3.S3, vender Vender) *S3 {
 		client: client,
 		vender: vender,
 	}
+}
+
+func (s *S3) KeepMessages(keep bool) *S3 {
+	if keep {
+		logrus.Info("Handler will NOT remove messages after successful delivery")
+	} else {
+		logrus.Warn("Handler will remove messages after successful delivery")
+	}
+
+	s.keepMessages = keep
+	return s
 }
 
 func (s *S3) HandleDelivery(n noti.DeliveryNotification) error {
@@ -64,7 +76,20 @@ func (s *S3) HandleDelivery(n noti.DeliveryNotification) error {
 		log.Error(err)
 		return err
 	}
+	drainReadCloser(out.Body)
 
+	s.remove(bucket, object)
+
+	return nil
+}
+
+func (s *S3) remove(bucket string, object string) error {
+	if s.keepMessages {
+		logrus.Infof("Retaining S3 message: s3://%s/%s", bucket, object)
+		return nil
+	}
+	// TODO: Add S3 object removal
+	logrus.Warn("No S3 removal implementation present")
 	return nil
 }
 

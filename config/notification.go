@@ -13,6 +13,9 @@ import (
 type Notification struct {
 	// QueueURL is the url of the SQS Queue to receive messages from.
 	QueueURL string
+	// KeepMessages can be set to true to retain messages in the
+	// notification stream for testing purposes or otherwise.
+	KeepMessages bool
 }
 
 // Poller is limited to the context and should be polled by the
@@ -23,5 +26,6 @@ func (n *Notification) Poller(_ context.Context, sess *session.Session) (noti.Po
 		return nil, errors.New("error creating sqs client from config")
 	}
 
-	return noti.NewSQS(sqs, n.QueueURL), nil
+	poller := noti.NewSQS(sqs, n.QueueURL).KeepMessages(n.KeepMessages)
+	return poller, nil
 }
