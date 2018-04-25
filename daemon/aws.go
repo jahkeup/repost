@@ -15,6 +15,6 @@ func (d *Daemon) logCallerIdentity(ctx context.Context, session *session.Session
 	if err != nil {
 		return err
 	}
-	d.log.Infof("aws credentials EUID: %q", aws.StringValue(out.Arn))
+	d.log.Infof("AWS Credentials effective arn: %q", aws.StringValue(out.Arn))
 	return nil
 }

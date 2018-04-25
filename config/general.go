@@ -13,7 +13,7 @@ import (
 
 // General configuration options for program run.
 type General struct {
-	apply sync.Once
+	applyOnce sync.Once
 
 	LogLevel string
 
@@ -25,8 +25,8 @@ type General struct {
 	RoleArn string
 }
 
-func (g *General) Apply() {
-	g.apply.Do(func() {
+func (g *General) apply() {
+	g.applyOnce.Do(func() {
 		lvl, err := logrus.ParseLevel(g.LogLevel)
 		if err != nil {
 			logrus.SetLevel(logrus.WarnLevel)
@@ -67,7 +67,7 @@ func (g *General) assumeSession(initSess *session.Session) (*session.Session, er
 	if err != nil {
 		return nil, errors.Wrap(err, "RoleArn could not be parsed")
 	}
-	logrus.Debug("Assuming role: %q", arn.String())
+	logrus.Debugf("Assuming role: %q", arn.String())
 	baseConf := g.awsConfig()
 	stscreds := stscreds.NewCredentials(initSess, arn.String())
 	sess, err := session.NewSession(&baseConf, &aws.Config{

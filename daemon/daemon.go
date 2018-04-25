@@ -16,7 +16,10 @@ type Daemon struct {
 
 // New configures a daemon for running as configured.
 func New(ctx context.Context, config *config.Config) (*Daemon, error) {
-	config.General.Apply()
+	err := config.Apply()
+	if err != nil {
+		return nil, err
+	}
 
 	log := logrus.WithField("context", "daemon")
 	session, err := config.Session()
