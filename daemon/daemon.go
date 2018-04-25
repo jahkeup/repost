@@ -46,12 +46,25 @@ func New(ctx context.Context, config *config.Config) (*Daemon, error) {
 
 	d := &Daemon{poller: poller, log: log}
 
-	err = d.logCallerIdentity(session)
+	err = d.logCallerIdentity(ctx, session)
 	if err != nil {
 		return nil, err
 	}
 
 	return d, nil
+}
+
+func (d *Daemon) ackContextDone(listenCtx context.Context) context.CancelFunc {
+	breakCtx, cancel := context.WithCancel(listenCtx)
+	go func() {
+		select {
+		case <-breakCtx.Done():
+			d.log.Debug("Poller returned control")
+		case <-listenCtx.Done():
+			d.log.Warn("Poller is wrapping up.")
+		}
+	}()
+	return cancel
 }
 
 // Run blocks and runs the poller.
@@ -65,7 +78,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 			return nil
 		default:
 			d.log.Debug("polling")
+			// Poller may not handle context immediately. Users should
+			// receive a notice that their ^C wasn't ignored.
+			completed := d.ackContextDone(ctx)
 			err := d.poller.Poll(ctx)
+			completed()
 			d.log.Debug("poll complete")
 			if err != nil {
 				d.log.Debug("poller errored, exiting run loop")

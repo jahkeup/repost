@@ -7,7 +7,7 @@ import (
 
 type Vender interface {
 	// Vend returns a deliverer suitable for a given notification.
-	Vend(notification.DeliveryNotification) delivery.Deliverer
+	Vend(notification.DeliveryNotification) (delivery.Deliverer, error)
 }
 
 // FuncVender vends a deliverer using a function regardless of the
@@ -25,9 +25,9 @@ func NewFuncVender(fn func() delivery.Deliverer) *FuncVender {
 	}
 }
 
-func (r *FuncVender) Vend(_ notification.DeliveryNotification) delivery.Deliverer {
+func (r *FuncVender) Vend(_ notification.DeliveryNotification) (delivery.Deliverer, error) {
 	if r.newDeliverer != nil {
-		return r.newDeliverer()
+		return r.newDeliverer(), nil
 	}
 	panic("deliverer func must be provided")
 }

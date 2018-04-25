@@ -44,7 +44,7 @@ func (s *S3) HandleDelivery(n noti.DeliveryNotification) error {
 		Key:    aws.String(object),
 	})
 
-	log.Debugf("Pulling message from S3: s3://%s%s", bucket, object)
+	log.Debugf("Fetching message from S3: s3://%s%s", bucket, object)
 	if err != nil {
 		err = errors.Wrap(err, "could not fetch message from S3")
 		log.Error(err)
@@ -53,7 +53,11 @@ func (s *S3) HandleDelivery(n noti.DeliveryNotification) error {
 	defer drainReadCloser(out.Body)
 
 	// Vend a Deliverer for this notification.
-	deliverer := s.vender.Vend(n)
+	deliverer, err := s.vender.Vend(n)
+	if err != nil {
+		return errors.Wrap(err, "deliever unavailable")
+	}
+	log.Debug("delivering message")
 	err = deliverer.Deliver(out.Body)
 	if err != nil {
 		err = errors.Wrap(err, "could not deliver message")

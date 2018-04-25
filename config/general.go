@@ -29,10 +29,11 @@ func (g *General) Apply() {
 	g.apply.Do(func() {
 		lvl, err := logrus.ParseLevel(g.LogLevel)
 		if err != nil {
-			logrus.SetLevel(logrus.InfoLevel)
-			logrus.Warnf("Provided loglevel %q was invalid, falling back to INFO", g.LogLevel)
+			logrus.SetLevel(logrus.WarnLevel)
+			logrus.Warnf("Provided loglevel %q was invalid, falling back to %q", g.LogLevel, logrus.WarnLevel)
 		} else {
 			logrus.SetLevel(lvl)
+			logrus.Debugf("Setting log level to %q", lvl)
 		}
 	})
 }
@@ -62,12 +63,11 @@ func (g *General) session() (*session.Session, error) {
 }
 
 func (g *General) assumeSession(initSess *session.Session) (*session.Session, error) {
-
 	arn, err := arn.Parse(g.RoleArn)
 	if err != nil {
 		return nil, errors.Wrap(err, "RoleArn could not be parsed")
 	}
-
+	logrus.Debug("Assuming role: %q", arn.String())
 	baseConf := g.awsConfig()
 	stscreds := stscreds.NewCredentials(initSess, arn.String())
 	sess, err := session.NewSession(&baseConf, &aws.Config{

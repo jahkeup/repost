@@ -38,7 +38,7 @@ func exampleConfig() config.Config {
 			Profile:  "repost",
 		},
 		Notification: config.Notification{
-			QueueURL: "https://queue-url.com",
+			QueueURL: "https://sqs.us-west-2.amazonaws.com/111111111111/ses-inbound-queue",
 		},
 		Delivery: config.Delivery{
 			Pipe: config.PipeDelivery{

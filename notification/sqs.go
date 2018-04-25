@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -98,27 +99,56 @@ func (s *sqsNotification) poll(ctx context.Context) error {
 
 func (s *sqsNotification) deliver(msgs []*sqs.Message) error {
 	for _, msg := range msgs {
-		dn, err := sqsMessageToDeliveryNotification(msg)
-		if err != nil {
-			s.log.Errorf("error extracting delivery notification from sqs message: %s", err)
-			if msg.Body != nil {
-				s.log.Debugf("sqs message: %q", msg.Body)
-			}
+		if msg.Body == nil || aws.StringValue(msg.Body) == "" {
+			err := errors.Errorf("MessageId %q: body was empty", aws.StringValue(msg.MessageId))
+			s.log.Error(err)
 			continue
 		}
-		if dn == nil {
-			errors.New("extracted delivery notification was empty")
-			s.log.Error(err)
-			return err
+		body := []byte(aws.StringValue(msg.Body))
+		dn, err := unwrapDelivery(body)
+		if err != nil {
+			s.log.Errorf("error unwrapping delivery notification: %s", err)
+			s.log.Debugf("sqs message: %q", msg.Body)
+			continue
 		}
-		s.handler.HandleDelivery(*dn)
+		err = s.handler.HandleDelivery(*dn)
+		if err != nil {
+			s.log.Error(err)
+			continue
+		}
+		s.remove(msg)
 	}
 	return nil
 }
 
-func sqsMessageToDeliveryNotification(msg *sqs.Message) (*DeliveryNotification, error) {
-	logrus.Printf("%s", aws.StringValue(msg.Body))
-	return nil, nil
+func (s *sqsNotification) remove(msg *sqs.Message) error {
+	if msg == nil {
+		return errors.New("nil sqs message provided")
+	}
+	return nil
+}
+
+func unwrapDelivery(msgBody []byte) (*DeliveryNotification, error) {
+	// sqsBodyEnvelope is the json body of the SNS notification in the sqs
+	// body field. Yay double unmarshaling.
+	type sqsBodyEnvelope struct {
+		Type      string
+		MessageId string
+		TopicArn  string
+		Subject   string
+		Message   string
+	}
+	env := &sqsBodyEnvelope{}
+	err := json.Unmarshal(msgBody, env)
+	if err != nil {
+		return nil, errors.Wrap(err, "unexpected envelope")
+	}
+	dn := &DeliveryNotification{}
+	err = json.Unmarshal([]byte(env.Message), dn)
+	if err != nil {
+		return nil, errors.Wrap(err, "envelope message wasn't a delivery notification")
+	}
+	return dn, nil
 }
 
 func NewSQS(receiver SQSReceiver, queueUrl string) *sqsNotification {
