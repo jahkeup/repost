@@ -28,6 +28,7 @@ var (
 // SQS queue.
 type SQSReceiver interface {
 	ReceiveMessage(*sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
+	DeleteMessage(*sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error)
 }
 
 type sqsNotification struct {
@@ -126,23 +127,34 @@ func (s *sqsNotification) remove(msg *sqs.Message) error {
 		return errors.New("nil sqs message provided")
 	}
 	if s.keepMessages {
-		s.log.Info("Retaining SQS message %q", aws.StringValue(msg.MessageId))
+		s.log.Infof("Retaining SQS message %q", aws.StringValue(msg.MessageId))
 		return nil
+	}
+
+	_, err := s.sqs.DeleteMessage(&sqs.DeleteMessageInput{
+		QueueUrl:      aws.String(s.queue),
+		ReceiptHandle: msg.ReceiptHandle,
+	})
+	if err != nil {
+		err = errors.Wrap(err, "error deleting sqs message")
+		s.log.Error(err)
+		return err
 	}
 
 	return nil
 }
 
+// sqsBodyEnvelope is the json body of the SNS notification in the sqs
+// body field. Yay double unmarshaling.
+type sqsBodyEnvelope struct {
+	Type      string
+	MessageId string
+	TopicArn  string
+	Subject   string
+	Message   string
+}
+
 func unwrapDelivery(msgBody []byte) (*DeliveryNotification, error) {
-	// sqsBodyEnvelope is the json body of the SNS notification in the sqs
-	// body field. Yay double unmarshaling.
-	type sqsBodyEnvelope struct {
-		Type      string
-		MessageId string
-		TopicArn  string
-		Subject   string
-		Message   string
-	}
 	env := &sqsBodyEnvelope{}
 	err := json.Unmarshal(msgBody, env)
 	if err != nil {

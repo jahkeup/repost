@@ -33,6 +33,19 @@ func (m *MockSQSReceiver) EXPECT() *MockSQSReceiverMockRecorder {
 	return m.recorder
 }
 
+// DeleteMessage mocks base method
+func (m *MockSQSReceiver) DeleteMessage(arg0 *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error) {
+	ret := m.ctrl.Call(m, "DeleteMessage", arg0)
+	ret0, _ := ret[0].(*sqs.DeleteMessageOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteMessage indicates an expected call of DeleteMessage
+func (mr *MockSQSReceiverMockRecorder) DeleteMessage(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMessage", reflect.TypeOf((*MockSQSReceiver)(nil).DeleteMessage), arg0)
+}
+
 // ReceiveMessage mocks base method
 func (m *MockSQSReceiver) ReceiveMessage(arg0 *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error) {
 	ret := m.ctrl.Call(m, "ReceiveMessage", arg0)
