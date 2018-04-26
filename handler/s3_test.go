@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/golang/mock/gomock"
 	"github.com/jahkeup/repost/delivery"
 	noti "github.com/jahkeup/repost/notification"
 	"github.com/pkg/errors"
@@ -107,7 +109,7 @@ const testNotification = `{
       {
         "name": "Subject",
         "value": "check check"
-      },
+        },
       {
         "name": "To",
         "value": "test@subdomain.example.net"
@@ -203,32 +205,48 @@ func (cb *closableBufferReader) Close() error {
 	return nil
 }
 
-type testS3Client struct {
-	responseBody []byte
-	err          error
-}
-
-func (tc *testS3Client) GetObject(input *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
-	bufrdc := newClosableBufferReader(tc.responseBody)
-
-	output := &s3.GetObjectOutput{}
-	output.SetBody(bufrdc)
-	if tc.err != nil {
-		return nil, tc.err
-	}
-	return output, tc.err
-}
-
 func TestS3Handler(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	s3client := NewMockS3Client(ctrl)
+	in := []byte("this is some data")
+
+	// Record and assert requested object
+	var (
+		reqObject string
+		reqBucket string
+	)
+	gomock.InOrder(
+		// Get should return some object data
+		s3client.EXPECT().GetObject(gomock.Any()).Times(1).DoAndReturn(
+			func(input *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
+				reqObject = aws.StringValue(input.Key)
+				reqBucket = aws.StringValue(input.Bucket)
+				require.NotEmpty(t, reqObject)
+				require.NotEmpty(t, reqBucket)
+
+				return &s3.GetObjectOutput{
+					Body: newClosableBufferReader(in),
+				}, nil
+			},
+		),
+
+		// Delete should follow after being handled.
+		s3client.EXPECT().DeleteObject(gomock.Any()).Times(1).DoAndReturn(
+			func(input *s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error) {
+				assert.Equal(t, reqObject, aws.StringValue(input.Key))
+				assert.Equal(t, reqBucket, aws.StringValue(input.Bucket))
+				return &s3.DeleteObjectOutput{}, nil
+			},
+		),
+	)
+
+	// Run Handler
 	var deliveryNotif noti.DeliveryNotification
 	err := json.Unmarshal([]byte(testNotification), &deliveryNotif)
 	require.NoError(t, err)
 
-	in := []byte("this is some data")
-
-	s3client := &testS3Client{
-		responseBody: in,
-	}
 	capture := delivery.NewCapture()
 
 	// vender will only be used for one vend.
@@ -236,9 +254,44 @@ func TestS3Handler(t *testing.T) {
 		return capture
 	})
 
-	noRealS3 := (*s3.S3)(nil)
-	s3handler := NewS3(noRealS3, vender)
-	s3handler.client = s3client
+	s3handler := NewS3(s3client, vender)
+	s3handler.log = s3handler.log.WithField("test", t.Name())
+
+	err = s3handler.HandleDelivery(deliveryNotif)
+	assert.NoError(t, err)
+	assert.Equal(t, in, capture.Data())
+}
+
+func TestS3HandlerKeepMessages(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	s3client := NewMockS3Client(ctrl)
+	in := []byte("this is some data")
+
+	// Get should return some object data, but should NOT call delete.
+	s3client.EXPECT().GetObject(gomock.Any()).Times(1).DoAndReturn(
+		func(input *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
+			return &s3.GetObjectOutput{
+				Body: newClosableBufferReader(in),
+			}, nil
+		},
+	)
+
+	// Run Handler
+	var deliveryNotif noti.DeliveryNotification
+	err := json.Unmarshal([]byte(testNotification), &deliveryNotif)
+	require.NoError(t, err)
+
+	capture := delivery.NewCapture()
+
+	// vender will only be used for one vend.
+	vender := NewFuncVender(func() delivery.Deliverer {
+		return capture
+	})
+
+	s3handler := NewS3(s3client, vender).KeepMessages(true)
+	s3handler.log = s3handler.log.WithField("test", t.Name())
 
 	err = s3handler.HandleDelivery(deliveryNotif)
 	assert.NoError(t, err)

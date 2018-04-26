@@ -11,28 +11,34 @@ import (
 	"github.com/pkg/errors"
 )
 
-type s3client interface {
+type S3Client interface {
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
+	DeleteObject(*s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 }
 
 type S3 struct {
-	client       s3client
+	client       S3Client
 	vender       Vender
 	keepMessages bool
+	log          logrus.FieldLogger
 }
 
-func NewS3(client *s3.S3, vender Vender) *S3 {
+func NewS3(client S3Client, vender Vender) *S3 {
 	return &S3{
 		client: client,
 		vender: vender,
+		log: logrus.WithFields(logrus.Fields{
+			"context": "handler",
+			"handler": "s3",
+		}),
 	}
 }
 
 func (s *S3) KeepMessages(keep bool) *S3 {
 	if keep {
-		logrus.Info("Handler will NOT remove messages after successful delivery")
+		s.log.Info("Handler will NOT remove messages after successful delivery")
 	} else {
-		logrus.Warn("Handler will remove messages after successful delivery")
+		s.log.Warn("Handler will remove messages after successful delivery")
 	}
 
 	s.keepMessages = keep
@@ -85,11 +91,13 @@ func (s *S3) HandleDelivery(n noti.DeliveryNotification) error {
 
 func (s *S3) remove(bucket string, object string) error {
 	if s.keepMessages {
-		logrus.Infof("Retaining S3 message: s3://%s/%s", bucket, object)
+		s.log.Infof("Retaining S3 message: s3://%s/%s", bucket, object)
 		return nil
 	}
-	// TODO: Add S3 object removal
-	logrus.Warn("No S3 removal implementation present")
+	s.client.DeleteObject(&s3.DeleteObjectInput{
+		Key:    aws.String(object),
+		Bucket: aws.String(bucket),
+	})
 	return nil
 }
 
