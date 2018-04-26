@@ -1,0 +1,16 @@
+* AWS Policies
+
+** S3
+
+   This should be limited to the bucket used for SES message storage.
+
+   - GetObject
+   - DeleteObject
+
+** SQS
+
+   This should be limited to the queue subscribed to SES' SNS
+   notifications.
+
+   - ReceiveMessage
+   - DeleteMessage

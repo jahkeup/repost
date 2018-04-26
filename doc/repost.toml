@@ -1,0 +1,31 @@
+[Delivery]
+  # KeepMessages after they've been retrieved from S3. You may want
+  # this to be true for retaining/archiving messages or maybe for
+  # maintaining a lifecycle policy directly in the bucket.
+  KeepMessages = true
+
+  [Delivery.Pipe]
+    # Command template, this is wrapped in 'sh' and then executed. You
+    # can use variables from the DeliveryNotification metadata that
+    # comes from SES. If you want to do further inspection of the
+    # message prior to handling, your command will need to read the
+    # message and take appropriate action.
+    Command = "tee ./mailbox/{{.Mail.MessageId}}"
+
+[General]
+  # LogLevel is the logrus log level (DEBUG, INFO, WARN, ERROR)
+  LogLevel = "WARN"
+  # AWS Region to call into (mixed region calls aren't supported)
+  Region = "us-west-2"
+  # RoleArn can be specified to assume this to make all API calls. If
+  # you're running this on an EC2 instance you can just use an
+  # Instance Profile with the appropriate role. See doc/policies.org
+  # for suggested AWS policies and roles.
+  RoleArn = "arn:aws:iam::111111111111:role/Repost"
+
+[Notification]
+  # KeepMessages from notification queue, this likely isn't what you
+  # want unless you're trying things out with your commands /
+  # deliveries.
+  KeepMessages = true
+  QueueURL = "https://sqs.us-west-2.amazonaws.com/111111111111/ses-inbound-queue"
