@@ -32,7 +32,7 @@ func (p *PipeDelivery) template() (*template.Template, error) {
 		return p.t, nil
 	}
 
-	t := template.New("pipe-delivery")
+	t := template.New("pipe-delivery").Funcs(funcMap)
 	parsed, err := t.Parse(p.Command)
 	if err != nil {
 		return nil, err
