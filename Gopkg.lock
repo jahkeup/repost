@@ -71,6 +71,12 @@
   revision = "0b12d6b5"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/leekchan/gtf"
+  packages = ["."]
+  revision = "79e3a68ab435edb72c6490289a33ef8bedcee15a"
+
+[[projects]]
   name = "github.com/pelletier/go-toml"
   packages = ["."]
   revision = "acdc4509485b587f5e675510c4f2c63e90ff68a8"
@@ -127,6 +133,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6f9f44569bbd7df7afce062f73e6dfffa6e028a707a314850bf89067f7bcc239"
+  inputs-digest = "0fc2edd2504faecda21198d30c5ba43ff2ee6c977dd56231428e84724234d6fd"
   solver-name = "gps-cdcl"
   solver-version = 1
